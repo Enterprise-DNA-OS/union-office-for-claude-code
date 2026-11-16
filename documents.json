@@ -1,11 +1,35 @@
 [
   {
-    "name": "example",
-    "title": "TODO(author): the first document this industry must produce",
-    "for_each": "select gen_random_uuid() as id, 'Example' as name",
+    "name": "case-file",
+    "title": "Case file",
+    "for_each": "select c.id, c.code from cases c where c.status not in ('settled', 'withdrawn', 'closed') order by c.code",
+    "file": "code",
+    "sections": [
+      { "title": "Case", "layout": "record", "sql": "select c.code, m.first_name || ' ' || m.last_name as member, m.member_no, w.name as workplace, e.name as employer, c.kind, c.jurisdiction, c.organiser, c.status, c.event_on, c.raised_on, c.determination_on, c.summary, c.next_step, c.next_step_due from cases c join members m on m.id = c.member_id left join workplaces w on w.id = m.workplace_id left join employers e on e.id = w.employer_id where c.id = $1" },
+      { "title": "Time limits", "note": "Check against the rule before acting. Sources in docs/compliance.md.", "sql": "select d.rule, d.limit_text, d.deadline_on, d.days_left from case_deadlines d join cases c on c.code = d.code where c.id = $1" },
+      { "title": "Contact history", "sql": "select k.contacted_on, k.kind, k.body, k.actor from contacts k join cases c on c.member_id = k.member_id where c.id = $1 order by k.contacted_on desc" }
+    ]
+  },
+  {
+    "name": "employer-remittance-statement",
+    "title": "Union fee remittance statement",
+    "for_each": "select id, name from employers order by code",
     "file": "name",
     "sections": [
-      { "title": "Details", "sql": "select 'replace me' as item, $1::text as record_id" }
+      { "title": "Employer", "layout": "record", "sql": "select name, payroll_contact, payroll_email from employers where id = $1" },
+      { "title": "Remittances received", "sql": "select code as remittance, period_start, period_end, received_on, amount_cents from remittances where employer_id = $1 order by period_end desc" },
+      { "title": "Members with authorised deductions missing from the latest remittance", "sql": "select g.member_no, g.name, g.workplace from remittance_gaps g join employers e on e.code = g.employer where e.id = $1 order by g.name" }
+    ]
+  },
+  {
+    "name": "bargaining-brief",
+    "title": "Bargaining brief",
+    "for_each": "select id, name from agreements where status <> 'superseded' order by code",
+    "file": "name",
+    "sections": [
+      { "title": "Agreement", "layout": "record", "sql": "select b.name, b.jurisdiction, b.starts_on, b.expires_on, b.days_to_expiry, b.window_opens_on, b.round, b.round_status, b.initiated_on, b.next_meeting_on, b.members_covered from bargaining_status b join agreements a on a.code = b.code where a.id = $1" },
+      { "title": "Claims", "sql": "select r.code as round, r.status, r.claims from bargaining_rounds r where r.agreement_id = $1 order by r.created_at desc" },
+      { "title": "Coverage and density", "sql": "select d.workplace, d.name, d.headcount, d.members, d.density_pct, d.delegates from density d join workplaces w on w.code = d.workplace join agreement_workplaces aw on aw.workplace_id = w.id where aw.agreement_id = $1 order by d.workplace" }
     ]
   }
 ]

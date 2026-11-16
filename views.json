@@ -1,14 +1,33 @@
 [
   {
     "name": "week",
-    "title": "This week",
-    "subtitle": "Union Office for Claude Code: what needs attention, rendered by npm run view",
+    "title": "This week in the union office",
+    "subtitle": "Deadlines, dues and organising, rendered by npm run view",
     "sections": [
-      {
-        "title": "Needs attention",
-        "note": "TODO(author): point this at the industry's attention view (overdue, stuck, quiet).",
-        "sql": "select 'replace me' as item, 'TODO(author)' as why"
-      }
+      { "title": "Statutory deadlines and rule checks", "note": "Each row cites its rule. Sources in docs/compliance.md.", "sql": "select rule, record, detail, due_on, days_left, source from compliance_findings order by days_left nulls last, rule" },
+      { "title": "Overdue next steps on cases", "sql": "select code, member, kind, organiser, next_step, next_step_due from case_load where overdue order by next_step_due" },
+      { "title": "Planned site visits", "sql": "select code, workplace, organiser, visit_on, notice_given_on, permit_no, issue from visit_checks order by visit_on" }
+    ]
+  },
+  {
+    "name": "dues",
+    "title": "Dues and remittances",
+    "subtitle": "Who has stopped paying and which employers are short",
+    "sections": [
+      { "title": "Latest remittance from each employer", "sql": "select employer_name as employer, remittance, period_start, period_end, received_on, payroll_members, members_on_file, expected_cents, received_cents, difference_cents, days_since_period from remittance_check order by difference_cents, employer" },
+      { "title": "Missing from the latest remittance", "sql": "select employer, remittance, member_no, name, workplace from remittance_gaps order by employer, name" },
+      { "title": "Members in arrears", "note": "Active members with no dues in six weeks.", "sql": "select member_no, name, workplace, dues_method, last_paid_on, days_unpaid, owed_estimate_cents from arrears order by days_unpaid desc" }
+    ]
+  },
+  {
+    "name": "organising",
+    "title": "Organising",
+    "subtitle": "Density, delegates and bargaining",
+    "sections": [
+      { "title": "Density by workplace", "sql": "select workplace, name, organiser, headcount, members, density_pct, delegates, hsrs from density order by density_pct nulls first" },
+      { "title": "Delegate roster issues", "sql": "select name, workplace, role, elected_on, term_ends_on, trained_on, issue from delegate_roster where issue <> 'ok' order by workplace" },
+      { "title": "Agreements and bargaining", "sql": "select code, name, jurisdiction, expires_on, days_to_expiry, window_opens_on, round, round_status, next_meeting_on, members_covered from bargaining_status order by expires_on" },
+      { "title": "Members at bargaining sites we have not spoken to in 90 days", "sql": "select member_no, name, workplace, last_contact_on, days_quiet from quiet_members order by days_quiet desc nulls first" }
     ]
   }
 ]
