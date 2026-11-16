@@ -422,7 +422,9 @@ export const commands = {
     usage: 'weekly-review',
     async run(db) {
       const q = (name) => db.query(reads[name].sql);
-      const [findings, arrears, remit, gaps, bargaining, quiet, load] = await Promise.all(['compliance', 'arrears', 'remittances', 'remittance-gaps', 'bargaining', 'quiet', 'organiser-load'].map(q));
+      const results = [];
+      for (const name of ['compliance', 'arrears', 'remittances', 'remittance-gaps', 'bargaining', 'quiet', 'organiser-load']) results.push(await q(name));
+      const [findings, arrears, remit, gaps, bargaining, quiet, load] = results;
       const owed = arrears.reduce((s, r) => s + Number(r.owed_estimate_cents || 0), 0);
       const short = remit.filter((r) => r.difference_cents < 0);
       const lines = [
